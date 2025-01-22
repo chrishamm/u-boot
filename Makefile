@@ -83,19 +83,6 @@ else
   Q = @
 endif
 
-buildconfig = ../../../.buildconfig
-ifeq ($(buildconfig), $(wildcard $(buildconfig)))
-	LICHEE_BUSSINESS=$(shell cat $(buildconfig) | grep -w "LICHEE_BUSSINESS" | awk -F= '{printf $$2}')
-	LICHEE_CHIP_CONFIG_DIR=$(shell cat $(buildconfig) | grep -w "LICHEE_CHIP_CONFIG_DIR" | awk -F= '{printf $$2}')
-	LICHEE_ARCH=$(shell cat $(buildconfig) | grep -w "LICHEE_ARCH" | awk -F= '{printf $$2}')
-	LICHEE_IC=$(shell cat $(buildconfig) | grep -w "LICHEE_IC" | awk -F= '{printf $$2}')
-	LICHEE_CHIP=$(shell cat $(buildconfig) | grep -w "LICHEE_CHIP" | awk -F= '{printf $$2}')
-	LICHEE_BOARD=$(shell cat $(buildconfig) | grep -w "LICHEE_BOARD" | awk -F= '{printf $$2}')
-	LICHEE_PLAT_OUT=$(shell cat $(buildconfig) | grep -w "LICHEE_PLAT_OUT" | awk -F= '{printf $$2}')
-	LICHEE_BOARD_CONFIG_DIR=$(shell cat $(buildconfig) | grep -w "LICHEE_BOARD_CONFIG_DIR" | awk -F= '{printf $$2}')
-	export LICHEE_BUSSINESS LICHEE_CHIP_CONFIG_DIR LICHEE_IC LICHEE_ARCH LICHEE_CHIP LICHEE_BOARD LICHEE_PLAT_OUT LICHEE_BOARD_CONFIG_DIR
-endif
-
 # If the user is running make -s (silent mode), suppress echoing of
 # commands
 
@@ -413,9 +400,7 @@ KBUILD_CPPFLAGS := -D__KERNEL__ -D__UBOOT__
 
 KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -Wno-format-security \
-		   -fno-builtin -ffreestanding\
-		   -Werror\
-		   -Wno-packed-bitfield-compat
+		   -fno-builtin -ffreestanding
 KBUILD_CFLAGS	+= -fshort-wchar
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 
@@ -968,28 +953,10 @@ quiet_cmd_cfgcheck = CFGCHK  $2
 cmd_cfgcheck = $(srctree)/scripts/check-config.sh $2 \
 		$(srctree)/scripts/config_whitelist.txt $(srctree)
 
-BOARD_DTS_NAME = $(LICHEE_IC)-$(LICHEE_BOARD)-board
-
-ifneq (x$(TARGET_BOARD), x)
-BOARD_DTS_NAME := $(TARGET_BOARD)
-LICHEE_TARGET_BOARD_EXIT=$(shell if [[ "$(TARGET_BOARD)" == *-board* ]]; then echo yes; else echo no; fi;)
-ifeq (x$(LICHEE_TARGET_BOARD_EXIT), xno)
-BOARD_DTS_NAME := $(BOARD_DTS_NAME)-board
-endif
-endif
-
-BOARD_DTS_EXIST = $(shell if [ -f $(DTS_PATH)/$(BOARD_DTS_NAME).dts ]; then echo yes; else echo no; fi;)
-
-DEVICE_BOARD_DTS_EXIST = $(shell if [ -f $(LICHEE_BOARD_CONFIG_DIR)/uboot-board.dts ]; then echo yes; else echo no; fi;)
-
 DTS_WARNNING_SKIP :=	-W no-unit_address_vs_reg \
 			-W no-unit_address_format \
 			-W no-simple_bus_reg \
 			-W no-pwms_property
-ifeq (x$(DEVICE_BOARD_DTS_EXIST), xyes)
-# add depend on external dts, make sure dts in uboot up to date
-dts/dt.dtb: $(LICHEE_BOARD_CONFIG_DIR)/uboot-board.dts
-endif
 
 all:		$(ALL-y) cfg
 ifeq ($(CONFIG_DM_I2C_COMPAT)$(CONFIG_SANDBOX),y)
@@ -1009,15 +976,7 @@ dtbs: dts/dt.dtb
 	@:
 dts/dt.dtb: u-boot
 
-ifeq (x$(DEVICE_BOARD_DTS_EXIST), xyes)
-	@-cp -v $(LICHEE_BOARD_CONFIG_DIR)/uboot-board.dts $(DTS_PATH)/.board-uboot.dts
-else
-ifeq (x$(BOARD_DTS_EXIST),xyes)
-	@-cp -v $(DTS_PATH)/$(BOARD_DTS_NAME).dts $(DTS_PATH)/.board-uboot.dts
-else
 	@-cp -v $(DTS_PATH)/$(CONFIG_SYS_CONFIG_NAME)-common-board.dts $(DTS_PATH)/.board-uboot.dts
-endif
-endif
 	$(Q)$(MAKE) $(build)=dts dtbs
 	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts  $(DTS_PATH)/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
 
@@ -1054,29 +1013,6 @@ TARGET_BIN_DIR ?= device/config/chips/$(TARGET_PLATFORM)/bin
 
 u-boot-$(CONFIG_SYS_CONFIG_NAME).bin:   u-boot.bin
 	@cp -v $<    $@
-ifeq ($(CONFIG_SUNXI_NOR_IMG),y)
-ifeq ($(TARGET_BUILD_VARIANT),tina)
-	@cp -v $@ $(objtree)/../../../$(TARGET_BIN_DIR)/u-boot-spinor-$(CONFIG_SYS_CONFIG_NAME).bin;
-else
-	@-if [ "x$(LICHEE_BUSSINESS)" != "x" ];then \
-		cp -v $@ $(LICHEE_CHIP_CONFIG_DIR)/$(LICHEE_BUSSINESS)/bin/u-boot-spinor-$(CONFIG_SYS_CONFIG_NAME).bin; \
-	else \
-		cp -v $@ $(LICHEE_CHIP_CONFIG_DIR)/bin/u-boot-spinor-$(CONFIG_SYS_CONFIG_NAME).bin;\
-	fi
-	@-cp -v $@ $(LICHEE_PLAT_OUT)/u-boot-spinor-$(CONFIG_SYS_CONFIG_NAME).bin;
-endif
-else
-ifeq ($(TARGET_BUILD_VARIANT),tina)
-	@cp -v $@ $(objtree)/../../../$(TARGET_BIN_DIR)/$@
-else
-	@-if [ "x$(LICHEE_BUSSINESS)" != "x" ];then\
-		cp -v $@ $(LICHEE_CHIP_CONFIG_DIR)/$(LICHEE_BUSSINESS)/bin/$@; \
-	else \
-		cp -v $@ $(LICHEE_CHIP_CONFIG_DIR)/bin/$@; \
-	fi
-	@-cp -v $@ $(LICHEE_PLAT_OUT)/$@;
-endif
-endif
 
 %.imx: %.bin
 	$(Q)$(MAKE) $(build)=arch/arm/mach-imx $@
