@@ -57,6 +57,9 @@ fit-dtb.blob
 /include/config/
 /include/generated/
 
+# Generated c files
+board/sunxi/sunxi_challenge.c
+
 # stgit generated dirs
 patches-*
 .stgit-edit.txt
@@ -89,3 +92,5 @@ GTAGS
 # gcc code coverage files
 *.gcda
 *.gcno
+prelink-riscv
+*.dtb

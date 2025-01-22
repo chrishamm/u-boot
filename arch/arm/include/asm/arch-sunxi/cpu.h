@@ -1,13 +1,19 @@
 /* SPDX-License-Identifier: GPL-2.0+ */
 /*
- * (C) Copyright 2015 Hans de Goede <hdegoede@redhat.com>
+ * (C) Copyright 2018-2020 <wangwei@allwinnertech.com>
  */
 
 #ifndef _SUNXI_CPU_H
 #define _SUNXI_CPU_H
 
-#if defined(CONFIG_MACH_SUN9I)
-#include <asm/arch/cpu_sun9i.h>
+#if defined(CONFIG_SUNXI_NCAT)
+#include <asm/arch/cpu_ncat.h>
+#elif defined(CONFIG_SUNXI_NCAT_V2)
+#include <asm/arch/cpu_ncat_v2.h>
+#elif defined(CONFIG_SUNXI_VERSION1)
+#include <asm/arch/cpu_version1.h>
+#elif defined(CONFIG_MACH_SUN55IW3)
+#include <asm/arch/plat-sun55iw3p1/cpu_sun55iw3.h>
 #else
 #include <asm/arch/cpu_sun4i.h>
 #endif
