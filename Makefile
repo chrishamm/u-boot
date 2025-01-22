@@ -976,9 +976,9 @@ dtbs: dts/dt.dtb
 	@:
 dts/dt.dtb: u-boot
 
-	@-cp -v $(DTS_PATH)/$(CONFIG_SYS_CONFIG_NAME)-common-board.dts $(DTS_PATH)/.board-uboot.dts
+	@-cp -v arch/arm/dts/$(CONFIG_SYS_CONFIG_NAME)-common-board.dts arch/arm/dts/.board-uboot.dts
 	$(Q)$(MAKE) $(build)=dts dtbs
-	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts  $(DTS_PATH)/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
+	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts  arch/arm/dts/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
 
 
 quiet_cmd_copy = COPY    $@
