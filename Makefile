@@ -950,7 +950,6 @@ dtbs: dts/dt.dtb
 	@:
 dts/dt.dtb: u-boot
 
-	@-cp -v $(DTS_PATH)/sun8i-duet3d-duetscreen-uboot.dts $(DTS_PATH)/.board-uboot.dts
 	$(Q)$(MAKE) $(build)=dts dtbs
 	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts $(DTS_PATH)/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
 
