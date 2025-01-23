@@ -252,22 +252,6 @@ ifeq (x$(config_check), xyes)
 endif
 endif
 
-#########################################################################
-RISCV_PATH=riscv64-linux-x86_64-20200528
-riscv_toolchain_check=$(shell if [ ! -d ../tools/toolchain/$(RISCV_PATH) ]; then echo yes; else echo no; fi;)
-ifeq (x$(riscv_toolchain_check), xyes)
-$(info Prepare riscv toolchain ...);
-$(shell mkdir -p ../tools/toolchain/$(RISCV_PATH) || exit 1)
-$(shell tar --strip-components=1 -xf ../tools/toolchain/$(RISCV_PATH).tar.xz -C ../tools/toolchain/$(RISCV_PATH) || exit 1)
-endif
-arm_toolchain_check=$(shell if [ ! -d ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi ]; then echo yes; else echo no; fi;)
-ifeq (x$(arm_toolchain_check), xyes)
-$(info Prepare arm toolchain ...);
-$(shell mkdir -p ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi || exit 1)
-$(shell tar --strip-components=1 -xf ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi.tar.xz -C ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi || exit 1)
-endif
-
-
 ifeq (x$(CONFIG_RISCV), xy)
 CROSS_COMPILE := $(srctree)/../tools/toolchain/$(RISCV_PATH)/bin/riscv64-unknown-linux-gnu-
 DTS_PATH := $(PWD)/arch/riscv/dts
