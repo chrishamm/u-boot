@@ -252,13 +252,11 @@ endif
 endif
 
 ifeq (x$(CONFIG_RISCV), xy)
-CROSS_COMPILE := $(srctree)/../tools/toolchain/$(RISCV_PATH)/bin/riscv64-unknown-linux-gnu-
-DTS_PATH := $(PWD)/arch/riscv/dts
+DTS_PATH := $(CURDIR)/arch/riscv/dts
 endif
 
 ifeq (x$(CONFIG_ARM), xy)
-CROSS_COMPILE := $(srctree)/../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-
-DTS_PATH := $(PWD)/arch/arm/dts
+DTS_PATH := $(CURDIR)/arch/arm/dts
 endif
 
 #######################################################################
