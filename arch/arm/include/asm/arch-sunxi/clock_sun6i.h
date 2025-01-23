@@ -160,6 +160,9 @@ struct sunxi_ccm_reg {
 	u32 pll_lock_ctrl;	/* 0x320 PLL lock control, R40 only */
 };
 
+#define CCMU_PLL_LOCK_CTRL_REG (SUNXI_CCM_BASE + 0x320)
+#define LOCK_EN_NEW_MODE       (1<<28)
+#define LOCK_EN_PLL_CPUX       (1<<0)
 /* apb2 bit field */
 #define APB2_CLK_SRC_LOSC		(0x0 << 24)
 #define APB2_CLK_SRC_OSC24M		(0x1 << 24)
@@ -329,10 +332,15 @@ struct sunxi_ccm_reg {
 #define AHB_GATE_OFFSET_LCD0		3
 #endif
 
-#define CCM_NAND_CTRL_M(x)		((x) - 1)
-#define CCM_NAND_CTRL_N(x)		((x) << 16)
 #define CCM_NAND_CTRL_PLL6		(0x1 << 24)
+
+#define CCM_NAND_CTRL_M			(0xF << 0)
+#define CCM_NAND_CTRL_CM(x)		((x) - 1)
+#define CCM_NAND_CTRL_N			(0x3 << 16)
+#define CCM_NAND_CTRL_CN(x)		((x) << 16)
 #define CCM_NAND_CTRL_ENABLE		(0x1 << 31)
+#define CCM_NAND_SRC_SELECT		(0x7 << 24)
+#define CCM_NAND_SRC_CSELECT(x)		(((x)& 0x7) << 24)
 
 #define CCM_MMC_CTRL_M(x)		((x) - 1)
 #define CCM_MMC_CTRL_OCLK_DLY(x)	((x) << 8)
@@ -341,6 +349,7 @@ struct sunxi_ccm_reg {
 #define CCM_MMC_CTRL_OSCM24		(0x0 << 24)
 #define CCM_MMC_CTRL_PLL6		(0x1 << 24)
 #define CCM_MMC_CTRL_ENABLE		(0x1 << 31)
+#define CCM_MMC_CTRL_PLL6X2		(0x1 << 24)
 
 #define CCM_SATA_CTRL_ENABLE		(0x1 << 31)
 #define CCM_SATA_CTRL_USE_EXTCLK	(0x1 << 24)
@@ -508,6 +517,21 @@ struct sunxi_ccm_reg {
 #define CCM_SEC_SWITCH_MBUS_NONSEC	(1 << 2)
 #define CCM_SEC_SWITCH_BUS_NONSEC	(1 << 1)
 #define CCM_SEC_SWITCH_PLL_NONSEC	(1 << 0)
+
+#define USBEHCI0_RST_BIT 26
+#define USBEHCI0_GATIING_BIT 26
+#define USBPHY0_RST_BIT 0
+#define USBPHY0_SCLK_GATING_BIT 8
+
+#define USBEHCI1_RST_BIT 27
+#define USBEHCI1_GATIING_BIT 27
+#define USBPHY1_RST_BIT 1
+#define USBPHY1_SCLK_GATING_BIT 9
+
+#define USBEHCI2_RST_BIT 28
+#define USBEHCI2_GATIING_BIT 28
+#define USBPHY2_RST_BIT 2
+#define USBPHY2_SCLK_GATING_BIT 10
 
 #ifndef __ASSEMBLY__
 void clock_set_pll1(unsigned int hz);

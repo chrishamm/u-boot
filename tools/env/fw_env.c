@@ -773,7 +773,7 @@ int fw_parse_script(char *fname, struct env_opts *opts)
 		 */
 		if (line[len - 1] != '\n') {
 			fprintf(stderr,
-				"Line %d not correctly terminated\n",
+				"Line %d not corrected terminated or too long\n",
 				lineno);
 			ret = -1;
 			break;

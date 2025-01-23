@@ -286,53 +286,28 @@ int do_fpga(cmd_tbl_t *cmdtp, int flag, int argc, char *const argv[])
 			break;
 #endif
 #if defined(CONFIG_FIT)
-		case IMAGE_FORMAT_FIT:
-			{
-				const void *fit_hdr = (const void *)fpga_data;
-				int noffset;
-				const void *fit_data;
-
-				if (fit_uname == NULL) {
-					puts("No FIT subimage unit name\n");
-					return 1;
-				}
-
-				if (!fit_check_format(fit_hdr)) {
-					puts("Bad FIT image format\n");
-					return 1;
-				}
-
-				/* get fpga component image node offset */
-				noffset = fit_image_get_node(fit_hdr,
-							     fit_uname);
-				if (noffset < 0) {
-					printf("Can't find '%s' FIT subimage\n",
-					       fit_uname);
-					return 1;
-				}
-
-				/* verify integrity */
-				if (!fit_image_verify(fit_hdr, noffset)) {
-					puts ("Bad Data Hash\n");
-					return 1;
-				}
-
 				/* get fpga subimage data address and length */
-				if (fit_image_get_data(fit_hdr, noffset,
-						       &fit_data, &data_size)) {
-					puts("Fpga subimage data not found\n");
-					return 1;
-				}
+	case IMAGE_FORMAT_FIT:
+	{
+		const void *fit_hdr = (const void *)fpga_data;
+		int noffset;
+		const void *fit_data;
 
-				rc = fpga_load(dev, fit_data, data_size,
-					       BIT_FULL);
-			}
-			break;
-#endif
-		default:
-			puts("** Unknown image type\n");
-			rc = FPGA_FAIL;
-			break;
+		if (!fit_uname) {
+			puts("No FIT subimage unit name\n");
+			return CMD_RET_FAILURE;
+		}
+
+		if (fit_check_format(fit_hdr, IMAGE_SIZE_INVAL)) {
+			puts("Bad FIT image format\n");
+			return CMD_RET_FAILURE;
+		}
+
+		/* get fpga component image node offset */
+		noffset = fit_image_get_node(fit_hdr, fit_uname);
+		if (noffset < 0) {
+			printf("Can't find '%s' FIT subimage\n", fit_uname);
+			return CMD_RET_FAILURE;
 		}
 		break;
 #endif

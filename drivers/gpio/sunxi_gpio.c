@@ -112,7 +112,7 @@ int sunxi_name_to_gpio(const char *name)
 	pin = simple_strtol(name, &eptr, 10);
 	if (!*name || *eptr)
 		return -1;
-	if (pin < 0 || pin > groupsize || group >= 9)
+	if (pin < 0 || pin > groupsize || group >= 12)
 		return -1;
 	return group * 32 + pin;
 }

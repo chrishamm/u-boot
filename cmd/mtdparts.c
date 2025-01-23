@@ -128,10 +128,6 @@ extern void board_mtdparts_default(const char **mtdids, const char **mtdparts);
 static const char *mtdids_default = MTDIDS_DEFAULT;
 static const char *mtdparts_default = MTDPARTS_DEFAULT;
 
-/* copies of last seen 'mtdids', 'mtdparts' and 'partition' env variables */
-#define MTDIDS_MAXLEN		128
-#define MTDPARTS_MAXLEN		512
-#define PARTITION_MAXLEN	16
 static char last_ids[MTDIDS_MAXLEN + 1];
 static char last_parts[MTDPARTS_MAXLEN + 1];
 static char last_partition[PARTITION_MAXLEN + 1];
@@ -1971,6 +1967,9 @@ static int do_mtdparts(cmd_tbl_t *cmdtp, int flag, int argc,
 
 			/* mtd_devices_init() calls current_save() */
 			return mtd_devices_init();
+		} else if (strcmp(argv[1], "list") == 0) {
+			list_partitions();
+			return 0;
 		}
 	}
 
@@ -2079,7 +2078,7 @@ U_BOOT_CMD(
 
 #ifdef CONFIG_SYS_LONGHELP
 static char mtdparts_help_text[] =
-	"\n"
+	"list\n"
 	"    - list partition table\n"
 	"mtdparts delall\n"
 	"    - delete all partitions\n"
@@ -2128,3 +2127,86 @@ U_BOOT_CMD(
 	"define flash/nand partitions", mtdparts_help_text
 );
 /***************************************************/
+
+static int _sunxi_do_mtdparts(cmd_tbl_t *cmdtp, int flag, int argc,
+		       char * const argv[])
+{
+	int ret;
+
+	/*normal boot : env is not ready, so use default.*/
+	if (!(gd->flags & GD_FLG_ENV_READY))
+		set_default_env(NULL);
+
+	ret = do_mtdparts(cmdtp, flag, argc, argv);
+
+	return ret;
+}
+
+int sunxi_do_mtdparts(int flag, int argc, char * const argv[])
+{
+	return _sunxi_do_mtdparts(NULL, flag, argc, argv);
+}
+
+char *sunxi_get_mtdparts_name(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->name;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return NULL;
+}
+
+u64 sunxi_get_mtdpart_size(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->size;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return 0;
+}
+
+u64 sunxi_get_mtdpart_offset(u16 mtd_partnum)
+{
+	struct part_info *part;
+
+	if (current_mtd_dev) {
+		if (mtd_partnum <= current_mtd_dev->num_parts) {
+			part = mtd_part_info(current_mtd_dev, mtd_partnum);
+			if (part)
+				return part->offset;
+			else
+				printf("%s, null part.\n", __func__);
+		}
+	}
+	return 0;
+}
+
+u16 sunxi_get_mtd_num_parts(void)
+{
+	if (current_mtd_dev)
+		return current_mtd_dev->num_parts;
+	else
+		return 0;
+}
+
+void sunxi_set_defualt_mtdpart(const char *mtdids, const char *mtdparts)
+{
+	if (mtdids)
+		mtdids_default = mtdids;
+	if (mtdparts)
+		mtdparts_default = mtdparts;
+}

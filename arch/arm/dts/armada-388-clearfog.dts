@@ -62,8 +62,6 @@
 		ethernet2 = &eth1;
 		ethernet3 = &eth2;
 		spi1 = &spi1;
-		i2c0 = &i2c0;
-		i2c1 = &i2c1;
 	};
 
 	chosen {

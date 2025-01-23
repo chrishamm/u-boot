@@ -231,8 +231,7 @@ static int __atcspi200_spi_xfer(struct nds_spi_slave *ns,
 		}
 		if (data_out)
 			debug("spi_xfer: data_out %08X(%p) data_in %08X(%p) data_len %lu\n",
-			      *(uint *)data_out, data_out, *(uint *)data_in,
-			      data_in, data_len);
+			      *(uint *)data_out, data_out, *(uint *)data_in, data_in, data_len);
 		num_chunks = DIV_ROUND_UP(data_len, max_tran_len);
 		din = data_in;
 		dout = data_out;

@@ -49,6 +49,7 @@
 #define CONFIG_ENV_SECT_SIZE		(256 << 10) /* 256KiB sectors */
 #define CONFIG_ENV_OVERWRITE
 
+#define CONFIG_PHY_MARVELL		/* there is a marvell phy */
 #define PHY_ANEG_TIMEOUT	8000	/* PHY needs a longer aneg time */
 
 #define CONFIG_PREBOOT

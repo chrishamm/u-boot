@@ -38,6 +38,10 @@
 #include <asm/sections.h>
 #include <dm/root.h>
 #include <linux/errno.h>
+#include <spare_head.h>
+#include <sunxi_board.h>
+#include <private_uboot.h>
+#include <boot_param.h>
 
 /*
  * Pointer to initial global data area
@@ -142,7 +146,7 @@ static int display_text_info(void)
 
 static int announce_dram_init(void)
 {
-	puts("DRAM:  ");
+	tick_printf("DRAM:  ");
 	return 0;
 }
 
@@ -166,7 +170,7 @@ static int show_dram_config(void)
 #else
 	size = gd->ram_size;
 #endif
-
+	size = uboot_spare_head.boot_data.dram_scan_size ? (phys_size_t)uboot_spare_head.boot_data.dram_scan_size * 1024 * 1024 : size;
 	print_size(size, "");
 	board_add_ram_info(0);
 	putc('\n');
@@ -218,13 +222,21 @@ static int init_func_spi(void)
 static int setup_mon_len(void)
 {
 #if defined(__ARM__) || defined(__MICROBLAZE__)
+	#ifdef CONFIG_ARCH_SUNXI
+	gd->mon_len = (ulong)&__bss_end - (ulong)__image_copy_start;
+	#else
 	gd->mon_len = (ulong)&__bss_end - (ulong)_start;
+	#endif
 #elif defined(CONFIG_SANDBOX) || defined(CONFIG_EFI_APP)
 	gd->mon_len = (ulong)&_end - (ulong)_init;
 #elif defined(CONFIG_NIOS2) || defined(CONFIG_XTENSA)
 	gd->mon_len = CONFIG_SYS_MONITOR_LEN;
 #elif defined(CONFIG_NDS32) || defined(CONFIG_SH) || defined(CONFIG_RISCV)
-	gd->mon_len = (ulong)(&__bss_end) - (ulong)(&_start);
+	#ifdef CONFIG_ARCH_SUNXI
+	gd->mon_len = (ulong)&__bss_end - (ulong)__image_copy_start;
+	#else
+	gd->mon_len = (ulong)&__bss_end - (ulong)_start;
+	#endif
 #elif defined(CONFIG_SYS_MONITOR_BASE)
 	/* TODO: use (ulong)&__bss_end - (ulong)&__text_start; ? */
 	gd->mon_len = (ulong)&__bss_end - CONFIG_SYS_MONITOR_BASE;
@@ -324,7 +336,7 @@ static int reserve_round_4k(void)
 #ifdef CONFIG_ARM
 __weak int reserve_mmu(void)
 {
-#if !(defined(CONFIG_SYS_ICACHE_OFF) && defined(CONFIG_SYS_DCACHE_OFF))
+#if !(CONFIG_IS_ENABLED(SYS_ICACHE_OFF) && CONFIG_IS_ENABLED(SYS_DCACHE_OFF))
 	/* reserve TLB table */
 	gd->arch.tlb_size = PGTABLE_SIZE;
 	gd->relocaddr -= gd->arch.tlb_size;
@@ -454,6 +466,60 @@ static int reserve_global_data(void)
 	return 0;
 }
 
+static int reserve_dtbo(void)
+{
+	void *dtbo_base = (void *)(CONFIG_SYS_TEXT_BASE + SUNXI_DTBO_OFFSET);
+	if (!fdt_check_header(dtbo_base)) {
+		const u32 dtbo_pad_size = 0x1000;
+		u32 dtbo_size = ALIGN(fdt_totalsize(dtbo_base) + dtbo_pad_size, 32);
+		fdt_set_totalsize((void *)dtbo_base, dtbo_size);
+		gd->start_addr_sp -= dtbo_size;
+		gd->new_dtbo = map_sysmem(gd->start_addr_sp, dtbo_size);
+		memcpy(gd->new_dtbo, dtbo_base, dtbo_size);
+		debug("Reserving %d Bytes for DTBO at: %08lx\n",
+			  dtbo_size, gd->start_addr_sp);
+	}
+	return 0;
+}
+
+#ifdef CONFIG_SUNXI_BOOT_PARAM
+static int reserve_boot_param(void)
+{
+	typedef_sunxi_boot_param *sunxi_boot_param =
+		sunxi_bootparam_get_buf_in_relocate_f();
+	u32 sunxi_boot_param_size = sizeof(typedef_sunxi_boot_param);
+	if (sunxi_verify_checksum(sunxi_boot_param,
+				  sizeof(typedef_sunxi_boot_param),
+				  sunxi_boot_param->header.check_sum) < 0) {
+		printf("bootparam checksum not match\n");
+		return 0;
+	}
+	if (sunxi_bootparam_check_magic(sunxi_boot_param) < 0) {
+		printf("bootparam magic error\n");
+		return 0;
+	}
+	gd->start_addr_sp -= sunxi_boot_param_size;
+	gd->boot_param = map_sysmem(gd->start_addr_sp, sunxi_boot_param_size);
+	memcpy(gd->boot_param, (void *)sunxi_boot_param, sunxi_boot_param_size);
+	debug("Reserving %d Bytes for boot_param at: %08lx\n",
+	       sunxi_boot_param_size, gd->start_addr_sp);
+
+	return 0;
+}
+#endif
+
+#ifdef CONFIG_OF_SEPARATE
+static int reserve_external_fdt(void)
+{
+	gd->fdt_ext_size = ALIGN(CONFIG_RESERVE_FDT_SIZE, 32);
+	gd->start_addr_sp -= gd->fdt_ext_size;
+	gd->new_ext_fdt = map_sysmem(gd->start_addr_sp, gd->fdt_ext_size);
+	debug("Reserving %lu Bytes for EXT FDT at: %08lx\n",
+		      gd->fdt_ext_size, gd->start_addr_sp);
+	return 0;
+}
+#endif
+
 static int reserve_fdt(void)
 {
 #ifndef CONFIG_OF_EMBED
@@ -463,12 +529,24 @@ static int reserve_fdt(void)
 	 * will be relocated with other data.
 	 */
 	if (gd->fdt_blob) {
-		gd->fdt_size = ALIGN(fdt_totalsize(gd->fdt_blob) + 0x1000, 32);
+		/* fdt pad size: for modify device tree at u-boot shell.*/
+		__maybe_unused u32 fdt_pad_size = 0x1000;
+		//128K memory is reserved if separate DTB function is used
+#ifdef CONFIG_OF_SEPARATE
+		gd->fdt_size = ALIGN(CONFIG_RESERVE_FDT_SIZE, 32);
+#else
+		gd->fdt_size = ALIGN(fdt_totalsize(gd->fdt_blob) + fdt_pad_size, 32);
+#endif
+		fdt_set_totalsize((void*)gd->fdt_blob, gd->fdt_size);
 
 		gd->start_addr_sp -= gd->fdt_size;
 		gd->new_fdt = map_sysmem(gd->start_addr_sp, gd->fdt_size);
 		debug("Reserving %lu Bytes for FDT at: %08lx\n",
 		      gd->fdt_size, gd->start_addr_sp);
+		reserve_dtbo();
+#ifdef CONFIG_OF_SEPARATE
+		reserve_external_fdt();
+#endif
 	}
 #endif
 
@@ -621,7 +699,7 @@ static int setup_reloc(void)
 	}
 
 #ifdef CONFIG_SYS_TEXT_BASE
-#ifdef ARM
+#if defined(CONFIG_ARM) || defined(CONFIG_RISCV)
 	gd->reloc_off = gd->relocaddr - (unsigned long)__image_copy_start;
 #elif defined(CONFIG_M68K)
 	/*
@@ -635,7 +713,7 @@ static int setup_reloc(void)
 #endif
 	memcpy(gd->new_gd, (char *)gd, sizeof(gd_t));
 
-	debug("Relocation Offset is: %08lx\n", gd->reloc_off);
+	tick_printf("Relocation Offset is: %08lx\n", gd->reloc_off);
 	debug("Relocating to %08lx, new gd at %08lx, sp at %08lx\n",
 	      gd->relocaddr, (ulong)map_to_sysmem(gd->new_gd),
 	      gd->start_addr_sp);
@@ -754,7 +832,7 @@ static const init_fnc_t init_sequence_f[] = {
 #ifdef CONFIG_OF_CONTROL
 	fdtdec_setup,
 #endif
-#ifdef CONFIG_TRACE
+#ifdef CONFIG_TRACE_EARLY
 	trace_early_init,
 #endif
 	initf_malloc,
@@ -813,6 +891,9 @@ static const init_fnc_t init_sequence_f[] = {
 #if defined(CONFIG_HARD_SPI)
 	init_func_spi,
 #endif
+#if defined(CONFIG_OPTEE25)
+	smc_init,
+#endif
 	announce_dram_init,
 	dram_init,		/* configure available RAM banks */
 #ifdef CONFIG_POST
@@ -856,6 +937,9 @@ static const init_fnc_t init_sequence_f[] = {
 	setup_machine,
 	reserve_global_data,
 	reserve_fdt,
+#ifdef CONFIG_SUNXI_BOOT_PARAM
+	reserve_boot_param,
+#endif
 	reserve_bootstage,
 	reserve_arch,
 	reserve_stacks,

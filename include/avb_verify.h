@@ -10,6 +10,8 @@
 
 #include <../lib/libavb/libavb.h>
 #include <mmc.h>
+#define CONFIG_FASTBOOT_BUF_ADDR 0x40000000
+#define CONFIG_FASTBOOT_BUF_SIZE 1024
 
 #define AVB_MAX_ARGS			1024
 #define VERITY_TABLE_OPT_RESTART	"restart_on_corruption"

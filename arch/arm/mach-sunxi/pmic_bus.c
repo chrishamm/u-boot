@@ -12,108 +12,92 @@
 #include <asm/arch/p2wi.h>
 #include <asm/arch/rsb.h>
 #include <i2c.h>
+#include "sunxi_i2c.h"
 #include <asm/arch/pmic_bus.h>
 
-#define AXP152_I2C_ADDR			0x30
 
-#define AXP209_I2C_ADDR			0x34
+static int twi_bus_num;
 
-#define AXP221_CHIP_ADDR		0x68
-#define AXP221_CTRL_ADDR		0x3e
-#define AXP221_INIT_DATA		0x3e
+/*
+ *para u16 device_addr has two meaning: twi mode is twi bus num, and rsb mode is rsb slave address.
+ *para u16 runtime_addr has two meaning: twi mode is invaild, and rsb mode is rsb runtime address.
+ *
+ */
 
-/* AXP818 device and runtime addresses are same as AXP223 */
-#define AXP223_DEVICE_ADDR		0x3a3
-#define AXP223_RUNTIME_ADDR		0x2d
-
-int pmic_bus_init(void)
+int pmic_bus_init(u16 device_addr, u16 runtime_addr)
 {
-	/* This cannot be 0 because it is used in SPL before BSS is ready */
-	static int needs_init = 1;
-	__maybe_unused int ret;
+	__maybe_unused int ret = 0;
 
-	if (!needs_init)
-		return 0;
-
-#if defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER
-# ifdef CONFIG_MACH_SUN6I
-	p2wi_init();
-	ret = p2wi_change_to_p2wi_mode(AXP221_CHIP_ADDR, AXP221_CTRL_ADDR,
-				       AXP221_INIT_DATA);
-# elif defined CONFIG_MACH_SUN8I_R40
-	/* Nothing. R40 uses the AXP221s in I2C mode */
-	ret = 0;
-# else
+#ifdef CONFIG_SYS_I2C_SUNXI
+#ifdef CONFIG_R_I2C0_ENABLE
+	if ((device_addr == 0x745) || (device_addr == 0x3a3)) {
+	/*all axp call pmic_bus_init, device_addr defaults to the slave address in rsb mode
+	 * so i2c mode need change device_addr = SUNXI_VIR_R_I2C0
+	 */
+		device_addr = SUNXI_VIR_R_I2C0;
+	}
+#endif
+	ret = i2c_set_bus_num(device_addr);
+	twi_bus_num = i2c_get_bus_num();
+#else
 	ret = rsb_init();
 	if (ret)
 		return ret;
 
-	ret = rsb_set_device_address(AXP223_DEVICE_ADDR, AXP223_RUNTIME_ADDR);
-# endif
-	if (ret)
-		return ret;
+	ret = rsb_set_device_address(device_addr, runtime_addr);
 #endif
-
-	needs_init = 0;
-	return 0;
+	return ret;
 }
 
-int pmic_bus_read(u8 reg, u8 *data)
+int pmic_bus_read(u16 runtime_addr, u8 reg, u8 *data)
 {
-#ifdef CONFIG_AXP152_POWER
-	return i2c_read(AXP152_I2C_ADDR, reg, 1, data, 1);
-#elif defined CONFIG_AXP209_POWER
-	return i2c_read(AXP209_I2C_ADDR, reg, 1, data, 1);
-#elif defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER
-# ifdef CONFIG_MACH_SUN6I
-	return p2wi_read(reg, data);
-# elif defined CONFIG_MACH_SUN8I_R40
-	return i2c_read(AXP209_I2C_ADDR, reg, 1, data, 1);
-# else
-	return rsb_read(AXP223_RUNTIME_ADDR, reg, data);
-# endif
+#ifdef CONFIG_SYS_I2C_SUNXI
+	return i2c_read(runtime_addr, reg, 1, data, 1);
+#else
+	return rsb_read(runtime_addr, reg, data);
 #endif
 }
 
-int pmic_bus_write(u8 reg, u8 data)
+int pmic_bus_write(u16 runtime_addr, u8 reg, u8 data)
 {
-#ifdef CONFIG_AXP152_POWER
-	return i2c_write(AXP152_I2C_ADDR, reg, 1, &data, 1);
-#elif defined CONFIG_AXP209_POWER
-	return i2c_write(AXP209_I2C_ADDR, reg, 1, &data, 1);
-#elif defined CONFIG_AXP221_POWER || defined CONFIG_AXP809_POWER || defined CONFIG_AXP818_POWER
-# ifdef CONFIG_MACH_SUN6I
-	return p2wi_write(reg, data);
-# elif defined CONFIG_MACH_SUN8I_R40
-	return i2c_write(AXP209_I2C_ADDR, reg, 1, &data, 1);
-# else
-	return rsb_write(AXP223_RUNTIME_ADDR, reg, data);
-# endif
+#ifdef CONFIG_SYS_I2C_SUNXI
+	return i2c_write(runtime_addr, reg, 1, &data, 1);
+#else
+	return rsb_write(runtime_addr, reg, data);
 #endif
 }
 
-int pmic_bus_setbits(u8 reg, u8 bits)
+int pmic_bus_exit(void)
+{
+#ifdef CONFIG_SYS_I2C_SUNXI
+	return i2c_set_bus_num(twi_bus_num);
+#else
+	return twi_bus_num;
+#endif
+}
+
+int pmic_bus_setbits(u16 runtime_addr, u8 reg, u8 bits)
 {
 	int ret;
 	u8 val;
 
-	ret = pmic_bus_read(reg, &val);
+	ret = pmic_bus_read(runtime_addr, reg, &val);
 	if (ret)
 		return ret;
 
 	val |= bits;
-	return pmic_bus_write(reg, val);
+	return pmic_bus_write(runtime_addr, reg, val);
 }
 
-int pmic_bus_clrbits(u8 reg, u8 bits)
+int pmic_bus_clrbits(u16 runtime_addr, u8 reg, u8 bits)
 {
 	int ret;
 	u8 val;
 
-	ret = pmic_bus_read(reg, &val);
+	ret = pmic_bus_read(runtime_addr, reg, &val);
 	if (ret)
 		return ret;
 
 	val &= ~bits;
-	return pmic_bus_write(reg, val);
+	return pmic_bus_write(runtime_addr, reg, val);
 }

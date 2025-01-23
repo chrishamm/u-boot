@@ -1,9 +1,10 @@
-/* SPDX-License-Identifier: GPL-2.0+ */
 /*
  * include/configs/ebisu.h
  *     This file is Ebisu board configuration.
  *
  * Copyright (C) 2018 Renesas Electronics Corporation
+ *
+ * SPDX-License-Identifier: GPL-2.0+
  */
 
 #ifndef __EBISU_H

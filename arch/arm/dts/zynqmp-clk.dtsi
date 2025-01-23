@@ -219,7 +219,7 @@
 };
 
 &watchdog0 {
-	clocks = <&clk100>;
+	clocks = <&clk250>;
 };
 
 &xilinx_drm {

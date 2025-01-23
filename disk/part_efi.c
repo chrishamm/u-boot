@@ -23,12 +23,12 @@
 
 DECLARE_GLOBAL_DATA_PTR;
 
+
+#ifdef CONFIG_HAVE_BLOCK_DEVICE
 /*
  * GUID for basic data partions.
  */
 static const efi_guid_t partition_basic_data_guid = PARTITION_BASIC_DATA_GUID;
-
-#ifdef CONFIG_HAVE_BLOCK_DEVICE
 /**
  * efi_crc32() - EFI version of crc32 function
  * @buf: buffer to calculate crc32 of

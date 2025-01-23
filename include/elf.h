@@ -88,7 +88,7 @@ typedef int64_t		Elf64_Sxword;
 		      (ehdr).e_ident[EI_MAG3] == ELFMAG3)
 
 /* ELF Header */
-typedef struct {
+typedef struct elf32_hdr {
 	unsigned char	e_ident[EI_NIDENT]; /* ELF Identification */
 	Elf32_Half	e_type;		/* object file type */
 	Elf32_Half	e_machine;	/* machine */
@@ -106,7 +106,7 @@ typedef struct {
 					   header string table" entry offset */
 } Elf32_Ehdr;
 
-typedef struct {
+typedef struct elf64_hdr {
 	unsigned char	e_ident[EI_NIDENT]; /* ELF Identification */
 	Elf64_Half	e_type;		/* object file type */
 	Elf64_Half	e_machine;	/* machine */
@@ -227,7 +227,7 @@ typedef struct {
 #define EV_NUM		2		/* number of versions */
 
 /* Section Header */
-typedef struct {
+typedef struct elf32_shdr {
 	Elf32_Word	sh_name;	/* name - index into section header
 					   string table section */
 	Elf32_Word	sh_type;	/* type */
@@ -241,7 +241,7 @@ typedef struct {
 	Elf32_Word	sh_entsize;	/* section entry size */
 } Elf32_Shdr;
 
-typedef struct {
+typedef struct  elf64_shdr {
 	Elf64_Word	sh_name;	/* name - index into section header
 					   string table section */
 	Elf64_Word	sh_type;	/* type */
@@ -428,7 +428,7 @@ typedef struct {
 #define ELF32_R_INFO(s,t)	(((s) << 8) + (unsigned char)(t))
 
 /* Program Header */
-typedef struct {
+typedef struct  elf32_phdr {
 	Elf32_Word	p_type;		/* segment type */
 	Elf32_Off	p_offset;	/* segment offset */
 	Elf32_Addr	p_vaddr;	/* virtual address of segment */
@@ -439,7 +439,7 @@ typedef struct {
 	Elf32_Word	p_align;	/* memory alignment */
 } Elf32_Phdr;
 
-typedef struct {
+typedef struct elf64_phdr {
 	Elf64_Word	p_type;		/* segment type */
 	Elf64_Word	p_flags;	/* flags */
 	Elf64_Off	p_offset;	/* segment offset */

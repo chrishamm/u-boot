@@ -27,13 +27,37 @@
 #define SUNXI_GPIO_G	6
 #define SUNXI_GPIO_H	7
 #define SUNXI_GPIO_I	8
+#define SUNXI_GPIO_J	9
+#define SUNXI_GPIO_K	10
+
+enum io_pow_mode_e {
+	IO_MODE_1_8_V = 0,
+	IO_MODE_3_3_V,
+	IO_MODE_DEFAULT,
+	IO_MODE_AUTO
+};
+
+enum pin_e {
+	GPIO_GROUP_A = 0,
+	GPIO_GROUP_B,
+	GPIO_GROUP_C,
+	GPIO_GROUP_D,
+	GPIO_GROUP_E,
+	GPIO_GROUP_F,
+	GPIO_GROUP_G,
+	GPIO_GROUP_H,
+	GPIO_GROUP_I,
+	GPIO_GROUP_J,
+	GPIO_GROUP_K,
+	GPIO_GROUP_L
+};
 
 /*
  * This defines the number of GPIO banks for the _main_ GPIO controller.
  * You should fix up the padding in struct sunxi_gpio_reg below if you
  * change this.
  */
-#define SUNXI_GPIO_BANKS 9
+#define SUNXI_GPIO_BANKS 11
 
 /*
  * sun6i/sun8i and later SoCs have an additional GPIO controller (R_PIO)
@@ -52,6 +76,62 @@
 #define SUNXI_GPIO_M	12
 #define SUNXI_GPIO_N	13
 
+#ifdef CONFIG_SUNXI_GPIO_V2
+struct sunxi_gpio {
+	u32 cfg[4];
+	u32 dat;
+	u32 drv[4];
+	u32 pull[2];
+	u32 res;
+};
+
+/* gpio interrupt control */
+struct sunxi_gpio_int {
+	u32 cfg[3];
+	u32 ctl;
+	u32 sta;
+	u32 deb;		/* interrupt debounce */
+};
+
+struct sunxi_gpio_reg {
+	struct sunxi_gpio gpio_bank[SUNXI_GPIO_BANKS];
+	u8 res[0x50];/*pad to 0x200*/
+	struct sunxi_gpio_int gpio_int;
+};
+
+#ifdef CONFIG_MACH_SUN55IW3
+#define SUNXI_PK_BASE	0x2000500
+#define BANK_TO_GPIO(bank) \
+	({\
+		struct sunxi_gpio *pio; \
+		if (bank == 10) { \
+			pio = &((struct sunxi_gpio_reg *)SUNXI_PK_BASE)->gpio_bank[0];  \
+		} else if ((bank) < SUNXI_GPIO_L) { \
+			pio = &((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank];  \
+		} else { \
+			pio = &((struct sunxi_gpio_reg *)SUNXI_R_PIO_BASE)->gpio_bank[(bank) - SUNXI_GPIO_L];  \
+		} \
+		pio; \
+	})
+
+#else
+#define BANK_TO_GPIO(bank)	(((bank) < SUNXI_GPIO_L) ? \
+	&((struct sunxi_gpio_reg *)SUNXI_PIO_BASE)->gpio_bank[bank] : \
+	&((struct sunxi_gpio_reg *)SUNXI_R_PIO_BASE)->gpio_bank[(bank) - SUNXI_GPIO_L])
+#endif
+
+#define GPIO_BANK(pin)		((pin) >> 5)
+#define GPIO_NUM(pin)		((pin) & 0x1f)
+
+#define GPIO_CFG_INDEX(pin)	(((pin) & 0x1f) >> 3)
+#define GPIO_CFG_OFFSET(pin)	((((pin) & 0x1f) & 0x7) << 2)
+
+#define GPIO_DRV_INDEX(pin)	(((pin) & 0x1f) >> 3)
+#define GPIO_DRV_OFFSET(pin)	((((pin) & 0x1f) & 0x7) << 2)
+
+#define GPIO_PULL_INDEX(pin)	(((pin) & 0x1f) >> 4)
+#define GPIO_PULL_OFFSET(pin)	((((pin) & 0x1f) & 0xf) << 1)
+#else
 struct sunxi_gpio {
 	u32 cfg[4];
 	u32 dat;
@@ -88,6 +168,7 @@ struct sunxi_gpio_reg {
 
 #define GPIO_PULL_INDEX(pin)	(((pin) & 0x1f) >> 4)
 #define GPIO_PULL_OFFSET(pin)	((((pin) & 0x1f) & 0xf) << 1)
+#endif
 
 /* GPIO bank sizes */
 #define SUNXI_GPIO_A_NR		32
@@ -99,6 +180,8 @@ struct sunxi_gpio_reg {
 #define SUNXI_GPIO_G_NR		32
 #define SUNXI_GPIO_H_NR		32
 #define SUNXI_GPIO_I_NR		32
+#define SUNXI_GPIO_J_NR		32
+#define SUNXI_GPIO_K_NR		32
 #define SUNXI_GPIO_L_NR		32
 #define SUNXI_GPIO_M_NR		32
 
@@ -172,7 +255,6 @@ enum sunxi_gpio_number {
 #define SUN8I_GPD_SDC1		3
 #define SUNXI_GPD_LCD0		2
 #define SUNXI_GPD_LVDS0		3
-#define SUNXI_GPD_PWM		2
 
 #define SUN5I_GPE_SDC2		3
 #define SUN8I_GPE_TWI2		3
@@ -198,6 +280,7 @@ enum sunxi_gpio_number {
 #define SUN6I_GPH_TWI2		2
 #define SUN6I_GPH_UART0		2
 #define SUN9I_GPH_UART0		2
+#define SUN50IW3_GPH_UART0	4
 
 #define SUNXI_GPI_SDC3		2
 #define SUN7I_GPI_TWI3		3
@@ -232,6 +315,10 @@ int sunxi_gpio_set_drv(u32 pin, u32 val);
 int sunxi_gpio_set_pull(u32 pin, u32 val);
 int sunxi_name_to_gpio_bank(const char *name);
 int sunxi_name_to_gpio(const char *name);
+enum io_pow_mode_e io_get_volt_val(enum pin_e port_group);
+void sunxi_io_set_pow_mode_on_actual_val(enum pin_e port_group);
+void sunxi_io_set_pow_mode_to_default(enum pin_e port_group);
+
 #define name_to_gpio(name) sunxi_name_to_gpio(name)
 
 #if !defined CONFIG_SPL_BUILD && defined CONFIG_AXP_GPIO

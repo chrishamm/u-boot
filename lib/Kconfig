@@ -27,6 +27,15 @@ config HAVE_PRIVATE_LIBGCC
 config LIB_UUID
 	bool
 
+config LIB_OPENDICE
+	bool "Enable AOSP library: Open Profile for DICE"
+	default n
+
+config LIB_OPENDICE_CONFIG
+	string "Name of Open Profile for DICE library configuration"
+	default "boringssl_ed25519"
+	depends on LIB_OPENDICE
+
 config PRINTF
 	bool
 	default y
@@ -185,6 +194,17 @@ config TPM
 	  for the low-level TPM interface, but only one TPM is supported at
 	  a time by the TPM library.
 
+config OPENSSL
+	bool "Openssl support"
+	help
+	  This enables support for X509 certificate decoding.
+
+config CRYPTO
+	bool "Use Crypto lib support"
+	default n
+	help
+	  This enables support for the crypto lib which is support rsa/ecc/aes/hash.
+
 endmenu
 
 menu "Android Verified Boot"
@@ -320,6 +340,20 @@ config OF_LIBFDT_OVERLAY
 	default y if ARCH_OMAP2PLUS || ARCH_KEYSTONE
 	help
 	  This enables the FDT library (libfdt) overlay support.
+
+config SUNXI_OVERLAY
+	bool "Enable the SXUNI FDT library overlay support"
+	depends on OF_LIBFDT_OVERLAY
+	default n
+	help
+	  This enables the SUNXI FDT library (libfdt) overlay support.
+
+config SUNXI_ANDROID_OVERLAY
+	bool "Enable the SXUNI ANDROID FDT library overlay support"
+	depends on OF_LIBFDT_OVERLAY
+	default n
+	help
+	  This enables the SUNXI ANDROID FDT library (libufdt) overlay support.
 
 config SPL_OF_LIBFDT
 	bool "Enable the FDT library for SPL"

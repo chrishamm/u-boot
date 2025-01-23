@@ -3,6 +3,10 @@
 # (C) Copyright 2004-2006
 # Wolfgang Denk, DENX Software Engineering, wd@denx.de.
 
+ccflags-$(CONFIG_RTL8363_NB) += -I$(src)/../include/rtl8363_nb/
+ccflags-$(CONFIG_RTL8363_NB) += -I$(src)/../drivers/net/rtl8363_nb/
+ccflags-$(CONFIG_AIOT_DISP_PARAM_UPDATE) += -I$(src)/../tools/iniparser/
+ccflags-$(CONFIG_AIOT_DISP_PARAM_UPDATE) += -I$(src)/../include/linux/
 ifndef CONFIG_SPL_BUILD
 # core command
 obj-y += boot.o
@@ -11,6 +15,7 @@ obj-y += help.o
 obj-y += version.o
 
 # command
+obj-$(CONFIG_CMD_AB_SELECT) += ab_select.o
 obj-$(CONFIG_CMD_AES) += aes.o
 obj-$(CONFIG_CMD_ADC) += adc.o
 obj-$(CONFIG_CMD_ARMFLASH) += armflash.o
@@ -87,11 +92,13 @@ ifdef CONFIG_PHYLIB
 obj-$(CONFIG_CMD_MII) += mdio.o
 endif
 obj-$(CONFIG_CMD_MISC) += misc.o
+obj-$(CONFIG_RTL8363_NB) += rtl8363.o
 obj-$(CONFIG_CMD_MMC) += mmc.o
 obj-$(CONFIG_CMD_MMC_SPI) += mmc_spi.o
 obj-$(CONFIG_MP) += mp.o
 obj-$(CONFIG_CMD_MTDPARTS) += mtdparts.o
 obj-$(CONFIG_CMD_NAND) += nand.o
+obj-$(CONFIG_CMD_AWNAND) += awnand.o
 obj-$(CONFIG_CMD_NET) += net.o
 obj-$(CONFIG_CMD_ONENAND) += onenand.o
 obj-$(CONFIG_CMD_PART) += part.o
@@ -128,13 +135,14 @@ obj-$(CONFIG_CMD_TPM_V2) += tpm-v2.o
 obj-$(CONFIG_CMD_CROS_EC) += cros_ec.o
 obj-$(CONFIG_CMD_TSI148) += tsi148.o
 obj-$(CONFIG_CMD_UBI) += ubi.o
+obj-$(CONFIG_UBI_OFFLINE_BURN) += ubi_simu.o
 obj-$(CONFIG_CMD_UBIFS) += ubifs.o
 obj-$(CONFIG_CMD_UNIVERSE) += universe.o
 obj-$(CONFIG_CMD_UNZIP) += unzip.o
 obj-$(CONFIG_CMD_LZMADEC) += lzmadec.o
 
 obj-$(CONFIG_CMD_USB) += usb.o disk.o
-obj-$(CONFIG_CMD_FASTBOOT) += fastboot.o
+obj-$(CONFIG_CMD_FASTBOOT) += cmd_fastboot.o
 obj-$(CONFIG_CMD_FS_UUID) += fs_uuid.o
 
 obj-$(CONFIG_CMD_USB_MASS_STORAGE) += usb_mass_storage.o
@@ -155,6 +163,41 @@ obj-$(CONFIG_CMD_PMIC) += pmic.o
 obj-$(CONFIG_CMD_REGULATOR) += regulator.o
 
 obj-$(CONFIG_CMD_BLOB) += blob.o
+
+# sunxi
+obj-$(CONFIG_CMD_SUNXI_TIMER) += sunxi_timer.o
+obj-$(CONFIG_CMD_SUNXI_CLK) += sunxi_clk.o
+obj-$(CONFIG_CMD_SUNXI_GPIO) += sunxi_gpio.o
+obj-$(CONFIG_CMD_SUNXI_SPRITE) += sunxi_sprite.o
+obj-$(CONFIG_CMD_SUNXI_FLASH) += sunxi_flash.o
+ccflags-$(CONFIG_CMD_SUNXI_SSPI) += -I$(src)/../drivers/spi/
+obj-$(CONFIG_CMD_SUNXI_SSPI) += sunxi_sspi.o
+obj-$(CONFIG_SUNXI_RTOS) += sunxi_rtos.o
+obj-$(CONFIG_SUNXI_MELIS_AUTO_UPDATE) += sunxi_melis.o
+obj-$(CONFIG_CMD_SUNXI_DMA) += sunxi_dma.o
+obj-$(CONFIG_CMD_SUNXI_PWM) += sunxi_pwm_test.o
+obj-$(CONFIG_CMD_SUNXI_EFEX) += sunxi_efex.o
+obj-$(CONFIG_CMD_SUNXI_NAND) += sunxi_nand.o
+obj-$(CONFIG_CMD_SUNXI_BURN) += sunxi_burn.o
+obj-$(CONFIG_CMD_SUNXI_BOOTR) += sunxi_bootr.o
+obj-$(CONFIG_CMD_SUNXI_BOOTRV) += sunxi_bootrv.o
+obj-$(CONFIG_CMD_SUNXI_HWSPINLOCK) += sunxi_hwspinlock.o
+ifdef CONFIG_SUNXI_SECURE_STORAGE
+obj-y += sunxi_svudata.o
+endif
+obj-$(CONFIG_CMD_SUNXI_AUTO_FEL) += sunxi_auto_fel.o
+
+obj-$(CONFIG_CMD_PWM_LED) += cmd_pwm_led.o
+
+obj-$(CONFIG_CMD_SUNXI_MEMTEST) += sunxi_memtest.o ./memtest/mem_tests.o
+
+obj-$(CONFIG_CMD_SUNXI_CE_TEST) += sunxi_ce_test.o
+
+obj-$(CONFIG_CMD_SUNXI_SYSRECOVERY_TEST) += sunxi_sysrecovery_test.o
+
+obj-$(CONFIG_AIOT_DISP_PARAM_UPDATE) += update_disp_param.o ../tools/iniparser/iniparser.o ../tools/iniparser/dictionary.o
+
+obj-$(CONFIG_AIOT_DISP_PARAM_UPDATE) += update_disp_param_from_ini.o
 
 # Android Verified Boot 2.0
 obj-$(CONFIG_CMD_AVB) += avb.o
@@ -205,3 +248,5 @@ $(obj)/license_data_size.h: $(srctree)/Licenses/gpl-2.0.txt FORCE
 	$(call filechk,data_size)
 
 CFLAGS_ethsw.o := -Wno-enum-conversion
+
+subdir-ccflags-$(CONFIG_SUNXI_TRACE) += -finstrument-functions

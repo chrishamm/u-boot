@@ -653,8 +653,6 @@ The following options need to be configured:
 		the defaults discussed just above.
 
 - Cache Configuration:
-		CONFIG_SYS_ICACHE_OFF - Do not enable instruction cache in U-Boot
-		CONFIG_SYS_DCACHE_OFF - Do not enable data cache in U-Boot
 		CONFIG_SYS_L2CACHE_OFF- Do not enable L2 cache in U-Boot
 
 - Cache Configuration for ARM:
@@ -2624,10 +2622,6 @@ FIT uImage format:
 
 		CONFIG_SPL_NAND_DRIVERS
 		SPL uses normal NAND drivers, not minimal drivers.
-
-		CONFIG_SPL_NAND_IDENT
-		SPL uses the chip ID list to identify the NAND flash.
-		Requires CONFIG_SPL_NAND_BASE.
 
 		CONFIG_SPL_NAND_ECC
 		Include standard software ECC in the SPL

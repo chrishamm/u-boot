@@ -22,7 +22,11 @@
 #include <usb.h>
 
 #ifdef CONFIG_USB_STORAGE
+#ifdef CONFIG_SUNXI_MELIS_AUTO_UPDATE
+int usb_stor_curr_dev = -1; /* current device */
+#else
 static int usb_stor_curr_dev = -1; /* current device */
+#endif
 #endif
 #if defined(CONFIG_USB_HOST_ETHER) && !defined(CONFIG_DM_ETH)
 static int __maybe_unused usb_ether_curr_dev = -1; /* current ethernet device */
@@ -625,6 +629,30 @@ static void usb_show_info(struct usb_device *udev)
 			usb_show_info(udev);
 		}
 	}
+}
+#endif
+#ifdef CONFIG_AIOT_DISP_PARAM_UPDATE_DEBUG
+#include <physical_key.h>
+int usb_auto_detect_device(void)
+{
+	int key = -2;
+
+	sunxi_lradc_key_init();
+	mdelay(10);
+	key = sunxi_key_read();
+	if (key > 8 && key < 13) {
+		printf("starting scanning usb for storage devices ...\n");
+		do_usb_start();
+	} else
+		printf("do not runing  scanning usb for storage devices ...\n");
+	return usb_stor_curr_dev;
+}
+#elif defined CONFIG_AIOT_DISP_PARAM_UPDATE
+int usb_auto_detect_device(void)
+{
+	printf("starting scanning usb for storage devices ...\n");
+	do_usb_start();
+	return usb_stor_curr_dev;
 }
 #endif
 

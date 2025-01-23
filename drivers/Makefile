@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: GPL-2.0+
 
 obj-$(CONFIG_$(SPL_TPL_)CLK) += clk/
+obj-$(CONFIG_CLK_SUNXI) += clk/
 obj-$(CONFIG_$(SPL_TPL_)DM) += core/
 obj-$(CONFIG_$(SPL_TPL_)DRIVERS_MISC_SUPPORT) += misc/ sysreset/ firmware/
 obj-$(CONFIG_$(SPL_TPL_)I2C_SUPPORT) += i2c/
@@ -14,6 +15,7 @@ obj-$(CONFIG_$(SPL_TPL_)SERIAL_SUPPORT) += serial/
 obj-$(CONFIG_$(SPL_TPL_)SPI_FLASH_SUPPORT) += mtd/spi/
 obj-$(CONFIG_$(SPL_TPL_)SPI_SUPPORT) += spi/
 obj-$(CONFIG_$(SPL_TPL_)TIMER) += timer/
+obj-$(CONFIG_$(SPL_TPL_)HWSPINLOCK) += hwspinlock/
 
 ifndef CONFIG_TPL_BUILD
 ifdef CONFIG_SPL_BUILD
@@ -97,10 +99,18 @@ obj-y += memory/
 obj-y += pwm/
 obj-y += reset/
 obj-y += input/
+ifneq (x$(CONFIG_NOT_USE_OPTEE25), xy)
+obj-y += smc/
+endif
+obj-y += nsi/
+obj-$(CONFIG_SUNXI_PHY_KEY) += phy_key/
 # SOC specific infrastructure drivers.
 obj-y += soc/
 obj-$(CONFIG_REMOTEPROC) += remoteproc/
 obj-y += thermal/
-
+obj-$(CONFIG_SUNXI_POWER) += sunxi_power/
+obj-$(CONFIG_SUNXI_ARISC_EXIST) += arisc/
+obj-$(CONFIG_XTENSA_DSP) += dsp/
+obj-$(CONFIG_BOOT_RISCV) += riscv/
 obj-$(CONFIG_MACH_PIC32) += ddr/microchip/
 endif

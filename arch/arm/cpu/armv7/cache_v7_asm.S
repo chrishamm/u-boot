@@ -18,7 +18,7 @@
  *
  *	Flush the whole D-cache.
  *
- *	Corrupted registers: r0-r7, r9-r11 (r6 only in Thumb mode)
+ *	Corrupted registers: r0-r7, r10-r12 (r6 only in Thumb mode)
  *
  *	Note: copied from arch/arm/mm/cache-v7.S of Linux 4.4
  */
@@ -47,16 +47,16 @@ flush_levels:
 	movw	r7, #0x7fff
 	ands	r7, r7, r1, lsr #13		@ extract max number of the index size
 loop1:
-	mov	r9, r7				@ create working copy of max index
+	mov	r12, r7				@ create working copy of max index
 loop2:
  ARM(	orr	r11, r10, r4, lsl r5	)	@ factor way and cache number into r11
  THUMB(	lsl	r6, r4, r5		)
  THUMB(	orr	r11, r10, r6		)	@ factor way and cache number into r11
- ARM(	orr	r11, r11, r9, lsl r2	)	@ factor index number into r11
- THUMB(	lsl	r6, r9, r2		)
+ ARM(	orr	r11, r11, r12, lsl r2	)	@ factor index number into r11
+ THUMB(	lsl	r6, r12, r2		)
  THUMB(	orr	r11, r11, r6		)	@ factor index number into r11
 	mcr	p15, 0, r11, c7, c14, 2		@ clean & invalidate by set/way
-	subs	r9, r9, #1			@ decrement the index
+	subs	r12, r12, #1			@ decrement the index
 	bge	loop2
 	subs	r4, r4, #1			@ decrement the way
 	bge	loop1
@@ -73,11 +73,11 @@ finished:
 ENDPROC(__v7_flush_dcache_all)
 
 ENTRY(v7_flush_dcache_all)
- ARM(	stmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
- THUMB(	stmfd	sp!, {r4-r7, r9-r11, lr}	)
+ ARM(	stmfd	sp!, {r4-r5, r7, r10-r12, lr}	)
+ THUMB(	stmfd	sp!, {r4-r7, r10-r12, lr}	)
 	bl	__v7_flush_dcache_all
- ARM(	ldmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
- THUMB(	ldmfd	sp!, {r4-r7, r9-r11, lr}	)
+ ARM(	ldmfd	sp!, {r4-r5, r7, r10-r12, lr}	)
+ THUMB(	ldmfd	sp!, {r4-r7, r10-r12, lr}	)
 	bx	lr
 ENDPROC(v7_flush_dcache_all)
 
@@ -86,7 +86,7 @@ ENDPROC(v7_flush_dcache_all)
  *
  *	Invalidate the whole D-cache.
  *
- *	Corrupted registers: r0-r7, r9-r11 (r6 only in Thumb mode)
+ *	Corrupted registers: r0-r7, r10-r12 (r6 only in Thumb mode)
  *
  *	Note: copied from __v7_flush_dcache_all above with
  *	mcr     p15, 0, r11, c7, c14, 2
@@ -117,16 +117,16 @@ inval_levels:
 	movw	r7, #0x7fff
 	ands	r7, r7, r1, lsr #13		@ extract max number of the index size
 inval_loop1:
-	mov	r9, r7				@ create working copy of max index
+	mov	r12, r7				@ create working copy of max index
 inval_loop2:
  ARM(	orr	r11, r10, r4, lsl r5	)	@ factor way and cache number into r11
  THUMB(	lsl	r6, r4, r5		)
  THUMB(	orr	r11, r10, r6		)	@ factor way and cache number into r11
- ARM(	orr	r11, r11, r9, lsl r2	)	@ factor index number into r11
- THUMB(	lsl	r6, r9, r2		)
+ ARM(	orr	r11, r11, r12, lsl r2	)	@ factor index number into r11
+ THUMB(	lsl	r6, r12, r2		)
  THUMB(	orr	r11, r11, r6		)	@ factor index number into r11
 	mcr	p15, 0, r11, c7, c6, 2		@ invalidate by set/way
-	subs	r9, r9, #1			@ decrement the index
+	subs	r12, r12, #1			@ decrement the index
 	bge	inval_loop2
 	subs	r4, r4, #1			@ decrement the way
 	bge	inval_loop1
@@ -143,10 +143,10 @@ inval_finished:
 ENDPROC(__v7_invalidate_dcache_all)
 
 ENTRY(v7_invalidate_dcache_all)
- ARM(	stmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
- THUMB(	stmfd	sp!, {r4-r7, r9-r11, lr}	)
+ ARM(	stmfd	sp!, {r4-r5, r7, r10-r12, lr}	)
+ THUMB(	stmfd	sp!, {r4-r7, r10-r12, lr}	)
 	bl	__v7_invalidate_dcache_all
- ARM(	ldmfd	sp!, {r4-r5, r7, r9-r11, lr}	)
- THUMB(	ldmfd	sp!, {r4-r7, r9-r11, lr}	)
+ ARM(	ldmfd	sp!, {r4-r5, r7, r10-r12, lr}	)
+ THUMB(	ldmfd	sp!, {r4-r7, r10-r12, lr}	)
 	bx	lr
 ENDPROC(v7_invalidate_dcache_all)

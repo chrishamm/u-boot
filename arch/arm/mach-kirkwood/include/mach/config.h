@@ -59,6 +59,7 @@
  * SPI Flash configuration
  */
 #ifdef CONFIG_CMD_SF
+#define CONFIG_HARD_SPI			1
 #ifndef CONFIG_ENV_SPI_BUS
 # define CONFIG_ENV_SPI_BUS		0
 #endif

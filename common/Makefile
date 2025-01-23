@@ -17,6 +17,7 @@ ifdef CONFIG_BOOT_RETRY_TIME
 obj-y += bootretry.o
 endif
 
+obj-y += libxbc.o
 # # boards
 obj-y += board_f.o
 obj-y += board_r.o
@@ -98,6 +99,7 @@ ifneq ($(CONFIG_$(SPL_)SYS_MALLOC_F_LEN),0)
 obj-y += malloc_simple.o
 endif
 endif
+obj-$(CONFIG_ANDROID_AB) += android_ab.o
 obj-y += image.o
 obj-$(CONFIG_ANDROID_BOOT_IMAGE) += image-android.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += image-fdt.o
@@ -120,5 +122,16 @@ obj-$(CONFIG_$(SPL_)LOG) += log.o
 obj-$(CONFIG_$(SPL_)LOG_CONSOLE) += log_console.o
 obj-y += s_record.o
 obj-y += xyzModem.o
+obj-n += avb_verify.o
 
-obj-$(CONFIG_LIBAVB) += avb_verify.o
+obj-$(CONFIG_BCC) += bcc.o
+CFLAGS_bcc.o = \
+	-I$(srctree)/lib/boringssl/include/\
+	-I$(srctree)/lib/boringssl/src/include/\
+	-I$(srctree)/lib/open-dice/include/\
+	-I$(srctree)/lib/open-dice/include/dice/config/$(CONFIG_LIB_OPENDICE_CONFIG)\
+	-DOPENSSL_NO_THREADS_CORRUPT_MEMORY_AND_LEAK_SECRETS_IF_THREADED\
+	-DOPENSSL_SMALL\
+	-DOPENSSL_NO_ASM\
+
+subdir-ccflags-$(CONFIG_SUNXI_TRACE) += -finstrument-functions

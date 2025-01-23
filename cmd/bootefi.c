@@ -50,6 +50,19 @@ efi_status_t efi_init_obj_list(void)
 	ret = efi_disk_register();
 	if (ret != EFI_SUCCESS)
 		goto out;
+	/* Remember only PE-COFF and FIT images */
+	if (efi_check_pe(buffer, buffer_size, NULL) != EFI_SUCCESS) {
+#ifdef CONFIG_FIT
+		if (fit_check_format(buffer, IMAGE_SIZE_INVAL))
+			return;
+		/*
+		 * FIT images of type EFI_OS are started via command bootm.
+		 * We should not use their boot device with the bootefi command.
+		 */
+		buffer = 0;
+		buffer_size = 0;
+#else
+		return;
 #endif
 #if defined(CONFIG_LCD) || defined(CONFIG_DM_VIDEO)
 	ret = efi_gop_register();

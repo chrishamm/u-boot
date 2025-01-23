@@ -17,6 +17,8 @@ obj-$(CONFIG_OF_LIVE) += of_live.o
 obj-$(CONFIG_CMD_DHRYSTONE) += dhry/
 obj-$(CONFIG_ARCH_AT91) += at91/
 obj-$(CONFIG_OPTEE) += optee/
+obj-$(CONFIG_OPENSSL) += openssl/
+obj-$(CONFIG_CRYPTO) += crypto/
 
 obj-$(CONFIG_AES) += aes.o
 obj-y += charset.o
@@ -31,7 +33,6 @@ obj-$(CONFIG_GZIP_COMPRESSED) += gzip.o
 obj-$(CONFIG_GENERATE_SMBIOS_TABLE) += smbios.o
 obj-$(CONFIG_IMAGE_SPARSE) += image-sparse.o
 obj-y += initcall.o
-obj-$(CONFIG_LMB) += lmb.o
 obj-y += ldiv.o
 obj-$(CONFIG_LZ4) += lz4_wrapper.o
 obj-$(CONFIG_MD5) += md5.o
@@ -57,6 +58,7 @@ obj-$(CONFIG_$(SPL_)GZIP) += gunzip.o
 obj-$(CONFIG_$(SPL_)LZO) += lzo/
 
 obj-$(CONFIG_LIBAVB) += libavb/
+obj-$(CONFIG_LIB_OPENDICE) += open-dice/
 
 obj-$(CONFIG_$(SPL_TPL_)SAVEENV) += qsort.o
 obj-$(CONFIG_$(SPL_TPL_)OF_LIBFDT) += libfdt/
@@ -79,9 +81,11 @@ obj-y += crc32.o
 obj-$(CONFIG_CRC32C) += crc32c.o
 obj-y += ctype.o
 obj-y += div64.o
+obj-$(CONFIG_OF_LIBFDT) += fdtdec.o
 obj-y += hang.o
 obj-y += linux_compat.o
 obj-y += linux_string.o
+obj-$(CONFIG_LMB) += lmb.o
 obj-y += membuff.o
 obj-$(CONFIG_REGEX) += slre.o
 obj-y += string.o

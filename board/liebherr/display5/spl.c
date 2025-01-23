@@ -21,7 +21,6 @@
 #include <fsl_esdhc.h>
 #include <netdev.h>
 #include <bootcount.h>
-#include <watchdog.h>
 #include "common.h"
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -117,49 +116,6 @@ static void ccgr_init(void)
 	writel(0x000003FF, &ccm->CCGR6);
 }
 
-#ifdef CONFIG_MX6_DDRCAL
-static void spl_dram_print_cal(struct mx6_ddr_sysinfo const *sysinfo)
-{
-	struct mx6_mmdc_calibration calibration = {0};
-
-	mmdc_read_calibration(sysinfo, &calibration);
-
-	debug(".p0_mpdgctrl0\t= 0x%08X\n", calibration.p0_mpdgctrl0);
-	debug(".p0_mpdgctrl1\t= 0x%08X\n", calibration.p0_mpdgctrl1);
-	debug(".p0_mprddlctl\t= 0x%08X\n", calibration.p0_mprddlctl);
-	debug(".p0_mpwrdlctl\t= 0x%08X\n", calibration.p0_mpwrdlctl);
-	debug(".p0_mpwldectrl0\t= 0x%08X\n", calibration.p0_mpwldectrl0);
-	debug(".p0_mpwldectrl1\t= 0x%08X\n", calibration.p0_mpwldectrl1);
-	debug(".p1_mpdgctrl0\t= 0x%08X\n", calibration.p1_mpdgctrl0);
-	debug(".p1_mpdgctrl1\t= 0x%08X\n", calibration.p1_mpdgctrl1);
-	debug(".p1_mprddlctl\t= 0x%08X\n", calibration.p1_mprddlctl);
-	debug(".p1_mpwrdlctl\t= 0x%08X\n", calibration.p1_mpwrdlctl);
-	debug(".p1_mpwldectrl0\t= 0x%08X\n", calibration.p1_mpwldectrl0);
-	debug(".p1_mpwldectrl1\t= 0x%08X\n", calibration.p1_mpwldectrl1);
-}
-
-static void spl_dram_perform_cal(struct mx6_ddr_sysinfo const *sysinfo)
-{
-	int ret;
-
-	/* Perform DDR DRAM calibration */
-	udelay(100);
-	ret = mmdc_do_write_level_calibration(sysinfo);
-	if (ret) {
-		printf("DDR: Write level calibration error [%d]\n", ret);
-		return;
-	}
-
-	ret = mmdc_do_dqs_calibration(sysinfo);
-	if (ret) {
-		printf("DDR: DQS calibration error [%d]\n", ret);
-		return;
-	}
-
-	spl_dram_print_cal(sysinfo);
-}
-#endif /* CONFIG_MX6_DDRCAL */
-
 static void spl_dram_init(void)
 {
 	struct mx6_ddr_sysinfo sysinfo = {
@@ -186,10 +142,6 @@ static void spl_dram_init(void)
 
 	mx6dq_dram_iocfg(64, &mx6_ddr_ioregs, &mx6_grp_ioregs);
 	mx6_dram_cfg(&sysinfo, &mx6_4x256mx16_mmdc_calib, &mt41k128m16jt_125);
-
-#ifdef CONFIG_MX6_DDRCAL
-	spl_dram_perform_cal(&sysinfo);
-#endif
 }
 
 #ifdef CONFIG_SPL_SPI_SUPPORT
@@ -244,10 +196,6 @@ void board_init_f(ulong dummy)
 	memset(__bss_start, 0, __bss_end - __bss_start);
 
 	displ5_set_iomux_misc_spl();
-
-	/* Initialize and reset WDT in SPL */
-	hw_watchdog_init();
-	WATCHDOG_RESET();
 
 	/* load/boot image from boot device */
 	board_init_r(NULL, 0);

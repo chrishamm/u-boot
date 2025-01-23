@@ -129,14 +129,24 @@ ifneq ($(KBUILD_SRC),)
 	else									\
 		dest=arch/$(ARCH)/include/asm/arch-$(if $(SOC),$(SOC),$(CPU));	\
 	fi;									\
-	ln -fsn $(KBUILD_SRC)/$$dest include/asm/arch
+	a=`ls -l include/asm/arch 2>/dev/null | awk {'print $$11'}` ; \
+	if [ x$$a = x$(KBUILD_SRC)/$$dest ]; then \
+		echo no repreat ln; \
+	else \
+		ln -fsn $(KBUILD_SRC)/$$dest include/asm/arch; \
+	fi;
 else
 	$(Q)if [ -d arch/$(ARCH)/mach-$(SOC)/include/mach ]; then	\
 		dest=../../mach-$(SOC)/include/mach;			\
 	else								\
 		dest=arch-$(if $(SOC),$(SOC),$(CPU));			\
 	fi;								\
-	ln -fsn $$dest arch/$(ARCH)/include/asm/arch
+	a=`ls -l arch/arm/include/asm/arch 2>/dev/null | awk {'print $$11'}` ; \
+	if [ x$$a = x$$dest ]; then \
+		echo no repreat ln; \
+	else \
+		ln -fsn $$dest arch/$(ARCH)/include/asm/arch; \
+	fi;
 endif
 endif
 

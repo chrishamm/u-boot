@@ -1,10 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0+
-
+SHELL:=/bin/bash
 VERSION = 2018
 PATCHLEVEL = 07
 SUBLEVEL =
 EXTRAVERSION =
 NAME =
+
+# Fix PWD in case it is invoked from BR2
+PWD = $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 # *DOCUMENTATION*
 # To see a list of typical targets execute "make help"
@@ -237,8 +240,62 @@ HOSTOS := $(shell uname -s | tr '[:upper:]' '[:lower:]' | \
 
 export	HOSTARCH HOSTOS
 
-#########################################################################
 
+defconfig = ./configs/$(MAKECMDGOALS)
+
+defconfig_check=$(shell if [ -f $(defconfig) ]; then echo yes; else echo no; fi;)
+config_check=$(shell if [ -f .config ]; then echo yes; else echo no; fi;)
+ifeq (x$(defconfig_check), xyes)
+	CONFIG_ARM=$(shell cat $(defconfig) | grep -w "CONFIG_ARM" | awk -F= '{printf $$2}')
+	CONFIG_RISCV=$(shell cat $(defconfig) | grep -w "CONFIG_RISCV" | awk -F= '{printf $$2}')
+	CONFIG_ARCH_RV32I=$(shell cat $(defconfig) | grep -w "CONFIG_ARCH_RV32I" | awk -F= '{printf $$2}')
+else
+ifeq (x$(config_check), xyes)
+	CONFIG_ARM=$(shell cat .config | grep -w "CONFIG_ARM" | awk -F= '{printf $$2}')
+	CONFIG_RISCV=$(shell cat .config | grep -w "CONFIG_RISCV" | awk -F= '{printf $$2}')
+	CONFIG_ARCH_RV32I=$(shell cat .config | grep -w "CONFIG_ARCH_RV32I" | awk -F= '{printf $$2}')
+endif
+endif
+
+#########################################################################
+ifeq (x$(CONFIG_ARCH_RV32I), xy)
+RISCV_PATH=nds32le-linux-glibc-v5d
+else
+RISCV_PATH=riscv64-linux-x86_64-20200528
+endif
+
+riscv_toolchain_check=$(shell if [ ! -d ../tools/toolchain/$(RISCV_PATH) ]; then echo yes; else echo no; fi;)
+ifeq (x$(riscv_toolchain_check), xyes)
+$(info Prepare riscv toolchain ...);
+$(shell mkdir -p ../tools/toolchain/$(RISCV_PATH) || exit 1)
+$(shell tar --strip-components=1 -xf ../tools/toolchain/$(RISCV_PATH).tar.xz -C ../tools/toolchain/$(RISCV_PATH) || exit 1)
+endif
+arm_toolchain_check=$(shell if [ ! -d ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi ]; then echo yes; else echo no; fi;)
+ifeq (x$(arm_toolchain_check), xyes)
+$(info Prepare arm toolchain ...);
+$(shell mkdir -p ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi || exit 1)
+$(shell tar --strip-components=1 -xf ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi.tar.xz -C ../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi || exit 1)
+endif
+
+
+ifeq (x$(CONFIG_RISCV), xy)
+ifeq (x$(CONFIG_ARCH_RV32I), xy)
+CROSS_COMPILE := $(srctree)/../tools/toolchain/$(RISCV_PATH)/bin/riscv32-unknown-linux-
+DTS_PATH := $(PWD)/arch/riscv/dts
+else
+CROSS_COMPILE := $(srctree)/../tools/toolchain/$(RISCV_PATH)/bin/riscv64-unknown-linux-gnu-
+DTS_PATH := $(PWD)/arch/riscv/dts
+endif
+endif
+
+ifeq (x$(CONFIG_ARM), xy)
+DTS_PATH := $(PWD)/arch/arm/dts
+endif
+
+CROSS_COMPILE ?= $(srctree)/../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-
+DTS_PATH ?= $(PWD)/arch/arm/dts
+
+#######################################################################
 # set default to nothing for native builds
 ifeq ($(HOSTARCH),$(ARCH))
 CROSS_COMPILE ?=
@@ -372,6 +429,10 @@ KBUILD_CPPFLAGS := -D__KERNEL__ -D__UBOOT__
 KBUILD_CFLAGS   := -Wall -Wstrict-prototypes \
 		   -Wno-format-security \
 		   -fno-builtin -ffreestanding $(CSTD_FLAG)
+ifeq (x$(CONFIG_ARCH_RV32I), xy)
+KBUILD_CFLAGS	+= -Wno-error=address-of-packed-member
+KBUILD_CFLAGS	+= -Wno-address-of-packed-member
+endif
 KBUILD_CFLAGS	+= -fshort-wchar
 KBUILD_AFLAGS   := -D__ASSEMBLY__
 
@@ -490,6 +551,10 @@ config: scripts_basic outputmakefile FORCE
 
 %config: scripts_basic outputmakefile FORCE
 	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+ifneq ($(findstring defconfig, $(MAKECMDGOALS)),)
+	$(shell md5sum "configs/$(MAKECMDGOALS)" | awk '{printf $$1}' > .tmp_defcofig.o.md5sum)
+	$(Q)md5sum ".config" | awk '{printf $$1}' > .tmp_config_from_defconfig.o.md5sum
+endif
 
 else
 # ===========================================================================
@@ -563,7 +628,6 @@ export EFI_TARGET	# binutils target if EFI is natively supported
 # If board code explicitly specified LDSCRIPT or CONFIG_SYS_LDSCRIPT, use
 # that (or fail if absent).  Otherwise, search for a linker script in a
 # standard location.
-
 ifndef LDSCRIPT
 	#LDSCRIPT := $(srctree)/board/$(BOARDDIR)/u-boot.lds.debug
 	ifdef CONFIG_SYS_LDSCRIPT
@@ -659,7 +723,8 @@ UBOOTINCLUDE    := \
 			$(if $(CONFIG_HAS_THUMB2),, \
 				-I$(srctree)/arch/$(ARCH)/thumb1/include),) \
 		-I$(srctree)/arch/$(ARCH)/include \
-		-include $(srctree)/include/linux/kconfig.h
+		-include $(srctree)/include/linux/kconfig.h \
+		-I$(srctree)/include/openssl
 
 NOSTDINC_FLAGS += -nostdinc -isystem $(shell $(CC) -print-file-name=include)
 CHECKFLAGS     += $(NOSTDINC_FLAGS)
@@ -716,6 +781,14 @@ libs-y += drivers/usb/musb/
 libs-y += drivers/usb/musb-new/
 libs-y += drivers/usb/phy/
 libs-y += drivers/usb/ulpi/
+libs-$(CONFIG_SUNXI_IR) += drivers/sunxi_ir/
+libs-$(CONFIG_SUNXI_FLASH) += drivers/sunxi_flash/
+libs-$(CONFIG_SUNXI_NAND) += drivers/sunxi_flash/nand/
+libs-$(CONFIG_SUNXI_SPINOR) += drivers/sunxi_flash/spinor/
+libs-$(CONFIG_SUNXI_SDMMC) += drivers/sunxi_flash/mmc/
+libs-$(CONFIG_SUNXI_USB) += drivers/sunxi_usb/
+libs-$(CONFIG_SUNXI_SPRITE) += sprite/
+libs-y += drivers/sunxi_crypto/
 libs-y += cmd/
 libs-y += common/
 libs-y += env/
@@ -730,7 +803,7 @@ libs-y += $(if $(BOARDDIR),board/$(BOARDDIR)/)
 
 libs-y := $(sort $(libs-y))
 
-u-boot-dirs	:= $(patsubst %/,%,$(filter %/, $(libs-y))) tools examples
+u-boot-dirs	:= $(patsubst %/,%,$(filter %/, $(libs-y))) tools #examples
 
 u-boot-alldirs	:= $(sort $(u-boot-dirs) $(patsubst %/,%,$(filter %/, $(libs-))))
 
@@ -747,6 +820,25 @@ else
 PLATFORM_LIBGCC := -L $(shell dirname `$(CC) $(c_flags) -print-libgcc-file-name`) -lgcc
 endif
 PLATFORM_LIBS += $(PLATFORM_LIBGCC)
+ifeq ($(CONFIG_SUNXI_NAND),y)
+ifneq ($(findstring $(CONFIG_SYS_CONFIG_NAME),"sun8iw18p1" "sun50iw3p1" "sun8iw7p1"),)
+PLATFORM_LIBS += drivers/sunxi_flash/nand/$(CONFIG_SYS_CONFIG_NAME)/libnand-$(CONFIG_SYS_CONFIG_NAME)
+endif
+endif
+
+ifeq ($(CONFIG_SUNXI_NAND)_$(CONFIG_SUNXI_RTOS),y_y)
+ifneq ($(findstring $(CONFIG_SYS_CONFIG_NAME),"sun8iw20p1" "sun20iw1p1"),)
+PLATFORM_LIBS += drivers/sunxi_flash/nand/$(CONFIG_SYS_CONFIG_NAME)/libnand-$(CONFIG_SYS_CONFIG_NAME)
+endif
+endif
+
+ifeq ($(CONFIG_SUNXI_ARM_SOFT_FP),y)
+PLATFORM_LIBS+=arch/arm/lib/soft_fp_from_gcc/soft_fp_from_gcc
+endif
+
+ifeq ($(CONFIG_SUNXI_RKP),y)
+PLATFORM_LIBS+=lib/libmbedtls/libmbedtls.2.28.0
+endif
 
 ifdef CONFIG_CC_COVERAGE
 KBUILD_CFLAGS += --coverage
@@ -799,6 +891,7 @@ endif
 
 # Always append ALL so that arch config.mk's can add custom ones
 ALL-y += u-boot.srec u-boot.bin u-boot.sym System.map binary_size_check
+ALL-$(CONFIG_ARCH_SUNXI) += u-boot-$(CONFIG_SYS_CONFIG_NAME).bin
 
 ALL-$(CONFIG_ONENAND_U_BOOT) += u-boot-onenand.bin
 ifeq ($(CONFIG_SPL_FSL_PBL),y)
@@ -862,7 +955,7 @@ LDFLAGS_u-boot += $(LDFLAGS_FINAL)
 # Avoid 'Not enough room for program headers' error on binutils 2.28 onwards.
 LDFLAGS_u-boot += $(call ld-option, --no-dynamic-linker)
 
-ifeq ($(CONFIG_ARC)$(CONFIG_NIOS2)$(CONFIG_X86)$(CONFIG_XTENSA),)
+ifeq ($(CONFIG_ARC)$(CONFIG_NIOS2)$(CONFIG_X86)$(CONFIG_XTENSA)$(CONFIG_ARCH_SUNXI),)
 LDFLAGS_u-boot += -Ttext $(CONFIG_SYS_TEXT_BASE)
 endif
 
@@ -902,6 +995,11 @@ quiet_cmd_cfgcheck = CFGCHK  $2
 cmd_cfgcheck = $(srctree)/scripts/check-config.sh $2 \
 		$(srctree)/scripts/config_whitelist.txt $(srctree)
 
+DTS_WARNNING_SKIP :=	-W no-unit_address_vs_reg \
+			-W no-unit_address_format \
+			-W no-simple_bus_reg \
+			-W no-pwms_property
+
 all:		$(ALL-y) cfg
 ifeq ($(CONFIG_DM_I2C_COMPAT)$(CONFIG_SANDBOX),y)
 	@echo "===================== WARNING ======================"
@@ -919,7 +1017,10 @@ PHONY += dtbs
 dtbs: dts/dt.dtb
 	@:
 dts/dt.dtb: u-boot
+
 	$(Q)$(MAKE) $(build)=dts dtbs
+	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts  $(DTS_PATH)/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
+
 
 quiet_cmd_copy = COPY    $@
       cmd_copy = cp $< $@
@@ -940,6 +1041,7 @@ u-boot.bin: u-boot-fit-dtb.bin FORCE
 	$(call if_changed,copy)
 else ifeq ($(CONFIG_OF_SEPARATE),y)
 u-boot-dtb.bin: u-boot-nodtb.bin dts/dt.dtb FORCE
+	$(shell ./scripts/sunxi_ubootools ubootlength u-boot-nodtb.bin > /dev/null)
 	$(call if_changed,cat)
 
 u-boot.bin: u-boot-dtb.bin FORCE
@@ -947,6 +1049,24 @@ u-boot.bin: u-boot-dtb.bin FORCE
 else
 u-boot.bin: u-boot-nodtb.bin FORCE
 	$(call if_changed,copy)
+endif
+
+TARGET_BIN_DIR ?= device/config/chips/$(TARGET_PLATFORM)/bin
+
+TARGET_BIN_DECORATOR :=
+ifeq ($(CONFIG_SUNXI_NOR_IMG),y)
+TARGET_BIN_DECORATOR := -spinor
+ifeq ($(CONFIG_SUNXI_SECURE_BOOT),y)
+TARGET_BIN_DECORATOR := $(TARGET_BIN_DECORATOR)-secure
+endif
+endif
+
+TARGET_BIN_NAME := u-boot$(TARGET_BIN_DECORATOR)-$(CONFIG_SYS_CONFIG_NAME).bin
+
+u-boot-$(CONFIG_SYS_CONFIG_NAME).bin:   u-boot.bin
+	@cp -v $<    $@
+ifeq ($(TARGET_BUILD_VARIANT),tina)
+	@cp -v $@ $(objtree)/../../../$(TARGET_BIN_DIR)/$(TARGET_BIN_NAME)
 endif
 
 %.imx: %.bin
@@ -1320,6 +1440,7 @@ u-boot-img-spl-at-end.bin: u-boot.img spl/u-boot-spl.bin FORCE
 ifndef PLATFORM_ELFENTRY
   PLATFORM_ELFENTRY = "_start"
 endif
+
 quiet_cmd_u-boot-elf ?= LD      $@
 	cmd_u-boot-elf ?= $(LD) u-boot-elf.o -o $@ \
 	--defsym=$(PLATFORM_ELFENTRY)=$(CONFIG_SYS_TEXT_BASE) \
@@ -1399,7 +1520,16 @@ include/config/uboot.release: include/config/auto.conf FORCE
 # version.h and scripts_basic is processed / created.
 
 # Listed in dependency order
-PHONY += prepare archprepare prepare0 prepare1 prepare2 prepare3
+PHONY += prepare archprepare prepare0 prepare1 prepare2 prepare3 cfg
+
+CLEAN_FILES += board/sunxi/sunxi_challenge.c
+board/sunxi/sunxi_challenge.c:
+	@echo "  prepare sunxi_challenge..."
+	@dd if=/dev/urandom of=sunxi_challenge bs=128 count=1 > /dev/null 2>&1
+	@xxd -c 8 -i sunxi_challenge > board/sunxi/sunxi_challenge.c
+	@sed -i '/^unsigned/i __attribute__((__used__))' board/sunxi/sunxi_challenge.c
+	@rm sunxi_challenge
+prepare: board/sunxi/sunxi_challenge.c
 
 # prepare3 is used to check if we are building in a separate output directory,
 # and if so do:
@@ -1440,11 +1570,23 @@ prepare: prepare0
 # ---------------------------------------------------------------------------
 
 define filechk_version.h
-	(echo \#define PLAIN_VERSION \"$(UBOOTRELEASE)\"; \
+	(echo \#define PLAIN_VERSION \"$(UBOOTRELEASE)$(CONFIG_DIRTY)\"; \
 	echo \#define U_BOOT_VERSION \"U-Boot \" PLAIN_VERSION; \
 	echo \#define CC_VERSION_STRING \"$$(LC_ALL=C $(CC) --version | head -n 1)\"; \
 	echo \#define LD_VERSION_STRING \"$$(LC_ALL=C $(LD) --version | head -n 1)\"; )
 endef
+
+DIRTY:=$(shell echo `git describe --dirty|grep -o dirty$$`)
+DEF_DOT_CONFIG_HASH=$(shell echo `cat .tmp_config_from_defconfig.o.md5sum`)
+CUR_DOT_CONFIG_HASH=$(shell echo `md5sum .config| awk '{printf $$1}'`)
+CONFIG_DIRTY:=$(shell if [ $(DEF_DOT_CONFIG_HASH) = $(CUR_DOT_CONFIG_HASH) ]; \
+	then echo ""; \
+	else echo "-config-dirty"; \
+	fi)
+ifeq ($(DIRTY)$(CONFIG_DIRTY),)
+	export SOURCE_DATE_EPOCH=$(shell echo `git log -1 --pretty=%ct`)
+endif
+
 
 # The SOURCE_DATE_EPOCH mechanism requires a date that behaves like GNU date.
 # The BSD date on the other hand behaves different and would produce errors

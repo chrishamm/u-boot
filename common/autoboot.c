@@ -13,6 +13,9 @@
 #include <menu.h>
 #include <post.h>
 #include <u-boot/sha256.h>
+#ifdef CONFIG_ARCH_SUNXI
+#include <sunxi_board.h>
+#endif
 #include <bootcount.h>
 
 DECLARE_GLOBAL_DATA_PTR;
@@ -223,9 +226,28 @@ static int __abortboot(int bootdelay)
 	 * Check if key already pressed
 	 */
 	if (tstc()) {	/* we got a key press	*/
-		(void) getc();  /* consume input	*/
-		puts("\b\b\b 0");
-		abort = 1;	/* don't auto boot	*/
+		char input, i;
+		for (i = 0; i < 3; i++) {
+			input = getc();  /* consume input       */
+			if (input == 's' || input == 'S') {
+				 mdelay(10);
+			} else {
+				break;
+			}
+		}
+		if (i >= 3) {
+			puts("\b\b\b 0");
+			abort = 1;	/* don't auto boot	*/
+			set_boot_debug_mode(1);
+		}
+
+	}
+
+	if (sunxi_get_uboot_shell() == 1) {
+		abort = 1;
+		bootdelay = 0;
+		sunxi_set_uboot_shell(0);
+		set_boot_debug_mode(1);
 	}
 
 	while ((bootdelay > 0) && (!abort)) {
@@ -314,9 +336,11 @@ const char *bootdelay_process(void)
 		s = env_get("failbootcmd");
 	} else
 #endif /* CONFIG_POST */
-	if (bootcount_error())
+#ifdef CONFIG_BOOTCOUNT_LIMIT
+	if (bootcount_error()) {
 		s = env_get("altbootcmd");
-	else
+	} else
+#endif /* CONFIG_BOOTCOUNT_LIMIT */
 		s = env_get("bootcmd");
 
 	process_fdt_options(gd->fdt_blob);

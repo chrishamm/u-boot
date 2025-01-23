@@ -26,6 +26,8 @@
 
 #define CONFIG_PCA953X
 
+#define CONFIG_ZYNQMP_XHCI_LIST {ZYNQMP_USB0_XHCI_BASEADDR}
+
 #define CONFIG_SYS_I2C_EEPROM_ADDR_LEN	1
 
 #include <configs/xilinx_zynqmp.h>

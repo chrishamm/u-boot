@@ -147,8 +147,7 @@ dtb-$(CONFIG_ARCH_ZYNQ) += \
 	zynq-zturn.dtb \
 	zynq-zybo.dtb
 dtb-$(CONFIG_ARCH_ZYNQMP) += \
-	zynqmp-mini-emmc0.dtb			\
-	zynqmp-mini-emmc1.dtb			\
+	zynqmp-mini-emmc.dtb			\
 	zynqmp-mini-nand.dtb			\
 	zynqmp-zcu100-revC.dtb			\
 	zynqmp-zcu102-revA.dtb			\
@@ -397,6 +396,8 @@ dtb-$(CONFIG_MACH_SUN9I) += \
 	sun9i-a80-optimus.dtb \
 	sun9i-a80-cubieboard4.dtb \
 	sun9i-a80-cx-a99.dtb
+dtb-$(CONFIG_MACH_SUN50IW3) += \
+	sun50iw3-common.dtb
 
 dtb-$(CONFIG_VF610) += vf500-colibri.dtb \
 	vf610-colibri.dtb \
