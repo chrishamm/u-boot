@@ -1,5 +1,4 @@
 # SPDX-License-Identifier: GPL-2.0+
-SHELL:=/bin/bash
 VERSION = 2018
 PATCHLEVEL = 05
 SUBLEVEL =
@@ -261,9 +260,6 @@ ifeq (x$(CONFIG_ARM), xy)
 CROSS_COMPILE := $(srctree)/../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-
 DTS_PATH := $(PWD)/arch/arm/dts
 endif
-
-CROSS_COMPILE ?= $(srctree)/../tools/toolchain/gcc-linaro-7.2.1-2017.11-x86_64_arm-linux-gnueabi/bin/arm-linux-gnueabi-
-DTS_PATH ?= $(PWD)/arch/arm/dts
 
 #######################################################################
 # set default to nothing for native builds
@@ -778,10 +774,6 @@ PLATFORM_LIBS += drivers/sunxi_flash/nand/$(CONFIG_SYS_CONFIG_NAME)/libnand-$(CO
 endif
 endif
 
-ifeq ($(CONFIG_SUNXI_ARM_SOFT_FP),y)
-PLATFORM_LIBS+=arch/arm/lib/soft_fp_from_gcc/soft_fp_from_gcc
-endif
-
 ifdef CONFIG_CC_COVERAGE
 KBUILD_CFLAGS += --coverage
 PLATFORM_LIBGCC += -lgcov
@@ -960,9 +952,9 @@ dtbs: dts/dt.dtb
 	@:
 dts/dt.dtb: u-boot
 
-	@-cp -v arch/arm/dts/$(CONFIG_SYS_CONFIG_NAME)-common-board.dts arch/arm/dts/.board-uboot.dts
+	@-cp -v $(DTS_PATH)/sun8i-duet3d-duetscreen-uboot.dts $(DTS_PATH)/.board-uboot.dts
 	$(Q)$(MAKE) $(build)=dts dtbs
-	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts  arch/arm/dts/$(CONFIG_DEFAULT_DEVICE_TREE).dtb > u-boot-dtb.dts
+	$(DTC) $(DTS_WARNNING_SKIP) -I dtb -O dts $(DTS_PATH)/sun8i-duet3d-duetscreen-uboot.dts > u-boot-dtb.dts
 
 
 quiet_cmd_copy = COPY    $@
