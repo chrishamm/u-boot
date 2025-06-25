@@ -321,6 +321,21 @@ struct aw_spinand_phy_info winbond[] =
 		.EccProtectedType = SIZE16_OFF4_LEN4_OFF8,
 		.BadBlockFlag = BAD_BLK_FLAG_FRIST_1_PAGE,
 	},
+	{
+		.Model		= "W25N02KVZEIR",
+		.NandID		= {0xef, 0xaa, 0x22, 0xff, 0xff, 0xff, 0xff, 0xff},
+		.DieCntPerChip  = 1,
+		.SectCntPerPage = 4,
+		.PageCntPerBlk  = 64,
+		.BlkCntPerDie	= 2048,
+		.OobSizePerPage = 64,
+		.OperationOpt	= SPINAND_QUAD_READ | SPINAND_QUAD_PROGRAM |
+			SPINAND_DUAL_READ,
+		.MaxEraseTimes  = 65000,
+		.EccType	= BIT2_LIMIT1_ERR2,
+		.EccProtectedType = SIZE16_OFF4_LEN4_OFF8,
+		.BadBlockFlag = BAD_BLK_FLAG_FRIST_1_PAGE,
+	},
 };
 
 struct aw_spinand_phy_info dosilicon[] =
